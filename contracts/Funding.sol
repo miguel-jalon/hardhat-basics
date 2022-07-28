@@ -18,7 +18,7 @@ contract Funding {
     uint256 public constant MINIMUM_USD = 50 * 10 ** 18;
     
     AggregatorV3Interface public priceFeed;
-
+ 
     constructor(address priceFeedAddress) {
         i_owner = msg.sender;
         priceFeed = AggregatorV3Interface(priceFeedAddress);
@@ -28,7 +28,7 @@ contract Funding {
         require(msg.value.getConversionRate(priceFeed) >= MINIMUM_USD, "You need to spend more ETH!");
         // require(PriceConverter.getConversionRate(msg.value) >= MINIMUM_USD, "You need to spend more ETH!");
         addressToAmountFunded[msg.sender] += msg.value;
-        funders.push(msg.sender);
+        funders.push(msg.sender); 
     }
     
     modifier onlyOwner {
@@ -71,7 +71,6 @@ contract Funding {
     receive() external payable {
         fund();
     }
-
 }
 
 // Concepts we didn't cover yet (will cover in later sections)

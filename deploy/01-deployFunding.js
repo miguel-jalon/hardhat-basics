@@ -1,22 +1,36 @@
-// function deployFunc() {
-//     console.log("Hi!")
-// }
-
-// module.exports.defult = deployFunc
-
-const { networkConfig } = require("../helper-hardhat-config")
-const { network } = require("hardhat")
+const { getNamedAccounts, deployments, network } = require("hardhat")
+const { networkConfig, developmentChains } = require("../helper-hardhat-config")
+const { verify } = require("../utils/verify")
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
     const { deploy, log } = deployments
     const { deployer } = await getNamedAccounts()
     const chainId = network.config.chainId
 
-    const ethUsdPriceFeedAddress = networkConfig[chainId]["ethUsdProceFeed"]
-
+    let ethUsdPriceFeedAddress
+    if (chainId == 31337) {
+        const ethUsdAggregator = await deployments.get("MockV3Aggregator")
+        ethUsdPriceFeedAddress = ethUsdAggregator.address
+    } else {
+        ethUsdPriceFeedAddress = networkConfig[chainId]["ethUsdPriceFeed"]
+    }
+    log("----------------------------------------------------")
+    log("Deploying Funding and waiting for confirmations...")
     const funding = await deploy("Funding", {
         from: deployer,
-        args: [], // PriceFeedAddress
+        args: [ethUsdPriceFeedAddress],
         log: true,
+        // we need to wait if on a live network so we can verify properly
+        waitConfirmations: network.config.blockConfirmations || 1
     })
+    log(`Funding deployed at ${funding.address}`)
+
+    if (
+        !developmentChains.includes(network.name) &&
+        process.env.ETHERSCAN_API_KEY
+    ) {
+        await verify(funding.address, [ethUsdPriceFeedAddress])
+    }
 }
+
+module.exports.tags = ["all", "funding"]
